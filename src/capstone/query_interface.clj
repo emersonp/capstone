@@ -27,3 +27,34 @@
 (def find-by-attribute (comp query find-by-attribute-sql))
 
 (def find-by-id (comp first query find-by-id-sql))
+
+;; Database-specific wrapper functions
+
+(defn find-route-stops
+  "Given a route-number, finds all stops that route stops at."
+  [route-number]
+  (map :location_id (set (find-by-attribute :stop_data_2 :ROUTE_NUMBER route-number {:select :LOCATION_ID}))))
+
+(defn shared-stops
+  "Given two routes, finds all stops those routes share, and returns them as a set."
+  [route1 route2]
+  (clojure.set/intersection (set (find-route-stops route1)) (set (find-route-stops route2))))
+
+(defn find-stop-routes
+  "Given a stop-number, finds all routes that stop at it and returns them as set."
+  [stop-number]
+  (map :route_number (set (find-by-attribute :stop_data_2 :LOCATION_ID stop-number {:select :route_number}))))
+
+(defn shared-routes
+  "Given two stops, finds all stops those routes share, and returns them as a set."
+  [stop1 stop2]
+  (clojure.set/intersection (set (find-stop-routes stop1)) (set (find-stop-routes stop2))))
+
+(defn connecting-stops
+  "Given two stops, returns all stops where they have connecting routes."
+  [stop1 stop2]
+  (reduce clojure.set/union
+   (for
+    [route1 (find-stop-routes stop1)
+     route2 (find-stop-routes stop2)]
+    (shared-stops route1 route2))))
