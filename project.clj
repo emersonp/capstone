@@ -6,7 +6,8 @@
   :dependencies [[org.clojure/clojure "1.6.0"] ; Clojure
                  [org.clojure/java.jdbc "0.3.6"] ; JDBC
                  [postgresql "9.3-1102.jdbc41"] ; Postgres
-                 [java-jdbc/dsl "0.1.1"]] ; JSQL DSL
+                 [java-jdbc/dsl "0.1.1"] ; JSQL DSL
+                 [seesaw "1.4.2" :exclusions [org.clojure/clojure]]] ; Seesaw Swing Wrapper
   :main ^:skip-aot capstone.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
