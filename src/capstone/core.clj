@@ -1,5 +1,8 @@
 (ns capstone.core
-  (:gen-class))
+  (:gen-class)
+  (require [capstone.query-interface :as qi])
+  (require [capstone.gui :as gui])
+  (require [seesaw.core :as seesaw]))
 
 (defn average
   "Prints the average of a collection."
@@ -9,4 +12,6 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (do
+    (seesaw/native!)
+    (-> gui/primary-window seesaw/pack! seesaw/show!)))
