@@ -5,7 +5,7 @@
 
 (def ^:private pgdb
   { :subprotocol "postgresql"
-    :subname "//localhost:5432/clj_test" })
+    :subname "//localhost:5432/capstone_db" })
 
 (def ^:private query
   (partial jdbc/query pgdb))
@@ -33,7 +33,7 @@
 (defn find-route-stops
   "Given a route-number, finds all stops that route stops at."
   [route-number]
-  (map :location_id (set (find-by-attribute :stop_data_2 :ROUTE_NUMBER route-number {:select :LOCATION_ID}))))
+  (map :location_id (set (find-by-attribute :stopdata_03122014 :ROUTE_NUMBER route-number {:select :LOCATION_ID}))))
 
 (defn shared-stops
   "Given two routes, finds all stops those routes share, and returns them as a set."
@@ -43,7 +43,7 @@
 (defn find-stop-routes
   "Given a stop-number, finds all routes that stop at it and returns them as set."
   [stop-number]
-  (map :route_number (set (find-by-attribute :stop_data_2 :LOCATION_ID stop-number {:select :route_number}))))
+  (map :route_number (set (find-by-attribute :stopdata_03122014 :LOCATION_ID stop-number {:select :route_number}))))
 
 (defn shared-routes
   "Given two stops, finds all stops those routes share, and returns them as a set."
