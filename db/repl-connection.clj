@@ -2,7 +2,7 @@
 
 (def pgdb
   {:subprotocol "postgresql"
-   :subname "//localhost:5432/clj_test"
+   :subname "//localhost:5432/capstone_db"
    })
 
 (def create-users-table-sql

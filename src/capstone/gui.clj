@@ -7,8 +7,12 @@
   [coll]
   (apply str (interpose \newline coll)))
 
-(defn stop-time-search
-  "Given a stop_time [num], returns the route and driver badge number of all buses stopping at that minute."
+(defn num-value
+  "Parses an input value of a text box into an integer and returns it."
+  [object]
+  (Integer/parseInt (value object)))
+
+(defn stop-number-search
   [num]
   (make-print-list (qi/find 'stopdata_03122014 {:select [:badge :route_number]
                                           :conditions {:stop_time num}})))
@@ -16,21 +20,22 @@
 (def test-content (text :editable? false
                         :multi-line? true
                         :rows 5
-                        :text (stop-time-search 36196)))
+                        :text (stop-number-search 36196)))
 
 (def center-text (flow-panel :align :center :items [(label "Center")]))
 
 (def capture-text (text :text "The biggest and baddest."))
 
-(def east-capture-button (button :text "East generate"
-                                 :mnemonic \E
+(def east-capture-button (button :text "Stop Number Search"
+                                 :mnemonic \S
                                  :listen
                                    [:action (fn [e]
-                                              (config! test-content :text (stop-time-search (Integer/parseInt (value capture-text)))))]))
+                                              (config! test-content :text (stop-number-search (num-value capture-text))))]))
 
-(def west-capture-button (button :text "West generate"
-                                 :mnemonic \W
-                                 :listen [:action (fn [e] (config! test-content :text (str (value test-content) \newline (value capture-text))))]))
+(def west-capture-button
+  (button :text "Find Route Stops"
+          :mnemonic \F
+          :listen [:action (fn [e] (config! test-content :text (make-print-list (qi/find-route-stops (num-value capture-text)))))]))
 
 (def test-layout (border-panel :north (scrollable test-content)
                                :center center-text
@@ -39,8 +44,6 @@
                                :south capture-text
                                :vgap 5 :hgap 5 :border 5))
 
-(def primary-window
-  "Main window for program."
-  (frame :title "Parker's Trimet Wonderstravaganza"
+(def primary-window (frame :title "Parker's Trimet Wonderstravaganza"
                            :content test-layout
                            :on-close :exit))

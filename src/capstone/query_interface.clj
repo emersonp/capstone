@@ -28,7 +28,9 @@
 
 (def find-by-id (comp first query find-by-id-sql))
 
+;;
 ;; Database-specific wrapper functions
+;;
 
 (defn find-route-stops
   "Given a route-number, finds all stops that route stops at."
