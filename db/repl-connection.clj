@@ -4,10 +4,3 @@
   {:subprotocol "postgresql"
    :subname "//localhost:5432/capstone_db"
    })
-
-(def create-users-table-sql
-  "CREATE TABLE users (
-    id bigserial primary key,
-    username varchar(255),
-    email varchar(255) not null
-  );")
