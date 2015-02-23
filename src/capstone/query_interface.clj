@@ -10,17 +10,23 @@
 (def ^:private query
   (partial jdbc/query pgdb))
 
-(defn find-sql [table {fields :select conditions :conditions :or {fields *}}]
-    (select fields table
-            (where conditions)))
+(defn find-sql
+  [table {fields :select conditions :conditions :or {fields *}}]
+  (select fields table
+          (where conditions)))
 
 (defn find-by-attribute-sql
   ([table attribute value] (find-by-attribute-sql table attribute value {}))
   ([table attribute value options]
    (find-sql table (merge options {:conditions {attribute value}}))))
 
-(defn find-by-id-sql [table id & args]
+(defn find-by-id-sql
+  [table id & args]
   (apply find-by-attribute-sql (concat (list table :id id) args)))
+
+(defn find-all-column-sql
+  [table column]
+  (select column table))
 
 (def find (comp query find-sql))
 
@@ -28,9 +34,13 @@
 
 (def find-by-id (comp first query find-by-id-sql))
 
+(def find-all-column (comp query find-all-column-sql))
+
 ;;
 ;; Database-specific wrapper functions
 ;;
+
+(def find-all-unique-column (comp set find-all-column))
 
 (defn find-route-stops
   "Given a route-number, finds all stops that route stops at."
@@ -60,3 +70,7 @@
     [route1 (find-stop-routes stop1)
      route2 (find-stop-routes stop2)]
     (shared-stops route1 route2))))
+
+;(def all-routes
+;  "A collection of all routes."
+;  (
