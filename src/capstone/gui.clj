@@ -22,27 +22,24 @@
                         :rows 5
                         :text (stop-number-search 36196)))
 
-(def center-text (flow-panel :align :center :items [(label "Center")]))
+(def my-left-column (grid-panel :border "Trip Parameters"
+                                :columns 1
+                                :items ["Prioritize"
+                                        (combobox :model ["Emptiest Route" "Fastest Route"])
+                                        "  "
+                                        "Window for..."
+                                        (combobox :model ["Arrival" "Destination"])
+                                        "  "
+                                        "Departure Stop ID"
+                                        (text "12345")
+                                        "Destination Stop ID"
+                                        (text "54321")
+                                        "  "
+                                        (button :text "Calculate")]))
 
-(def capture-text (text :text "The biggest and baddest."))
-
-(def east-capture-button (button :text "Stop Number Search"
-                                 :mnemonic \S
-                                 :listen
-                                   [:action (fn [e]
-                                              (config! test-content :text (stop-number-search (num-value capture-text))))]))
-
-(def west-capture-button
-  (button :text "Find Route Stops"
-          :mnemonic \F
-          :listen [:action (fn [e] (config! test-content :text (make-print-list (qi/find-route-stops (num-value capture-text)))))]))
-
-(def test-layout (border-panel :north (scrollable test-content)
-                               :center center-text
-                               :east east-capture-button
-                               :west west-capture-button
-                               :south capture-text
-                               :vgap 5 :hgap 5 :border 5))
+(def test-layout (grid-panel :columns 2
+                             :items [my-left-column
+                                     "Frank!"]))
 
 (def primary-window (frame :title "Parker's Trimet Wonderstravaganza"
                            :content test-layout
