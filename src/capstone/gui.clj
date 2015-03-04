@@ -17,10 +17,27 @@
   (make-print-list (qi/find 'stopdata_03122014 {:select [:badge :route_number]
                                           :conditions {:stop_time num}})))
 
-(def test-content (text :editable? false
-                        :multi-line? true
-                        :rows 5
-                        :text (stop-number-search 36196)))
+;; (def test-content (text :editable? false
+;;                         :multi-line? true
+;;                         :rows 5
+;;                         :text (stop-number-search 36196)))
+
+(def text-display (text :text "Frank"
+                        :editable? false
+                        :multi-line? true))
+
+(def departure-id-text (text :text "6415"))
+
+(def destination-id-text (text :text "6411"))
+
+(def calculate-button (button :text "Calculate"
+                              :mnemonic \C
+                              :listen [:action (fn [e]
+                                                 (config! text-display
+                                                          :text (str
+                                                                  (qi/shared-routes
+                                                                    (num-value departure-id-text)
+                                                                    (num-value destination-id-text)))))]))
 
 (def my-left-column (grid-panel :border "Trip Parameters"
                                 :columns 1
@@ -30,16 +47,21 @@
                                         "Window for..."
                                         (combobox :model ["Arrival" "Destination"])
                                         "  "
+                                        "Start Time"
+                                        (text "12:30")
+                                        "End Time"
+                                        (text "13:30")
+                                        " "
                                         "Departure Stop ID"
-                                        (text "12345")
+                                        departure-id-text
                                         "Destination Stop ID"
-                                        (text "54321")
+                                        destination-id-text
                                         "  "
-                                        (button :text "Calculate")]))
+                                        calculate-button]))
 
 (def test-layout (grid-panel :columns 2
                              :items [my-left-column
-                                     "Frank!"]))
+                                     text-display]))
 
 (def primary-window (frame :title "Parker's Trimet Wonderstravaganza"
                            :content test-layout
