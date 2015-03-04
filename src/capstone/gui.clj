@@ -30,14 +30,14 @@
 
 (def destination-id-text (text :text "6411"))
 
-(def calculate-button (button :text "Calculate"
-                              :mnemonic \C
-                              :listen [:action (fn [e]
-                                                 (config! text-display
-                                                          :text (str
-                                                                  (qi/shared-routes
-                                                                    (num-value departure-id-text)
-                                                                    (num-value destination-id-text)))))]))
+(def calculate-button
+  (button :text "Calculate"
+          :mnemonic \C
+          :listen [:action (fn [e]
+                             (config! text-display
+                                      :text (clojure.string/join "\n" (qi/shared-routes
+                                                   (num-value departure-id-text)
+                                                   (num-value destination-id-text)))))]))
 
 (def my-left-column (grid-panel :border "Trip Parameters"
                                 :columns 1
