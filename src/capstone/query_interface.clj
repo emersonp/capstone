@@ -1,7 +1,9 @@
 (ns capstone.query-interface
   (:use java-jdbc.sql)
   (:require [clojure.java.jdbc :as jdbc])
-  (:refer-clojure :exclude [find]))
+  (:refer-clojure :exclude [find])
+  (:require [honeysql.core :as sql]
+            [honeysql.helpers :as sqlhelp]))
 
 (def ^:private pgdb
   { :subprotocol "postgresql"
@@ -28,6 +30,13 @@
   [table column]
   (select column table))
 
+;;(defn find-all-column-sql
+;;  "Finds all elements of a column."
+;;  [column & args]
+;;  (sql/format {:select [column args]
+;;               :from [:stopdata_03122014]}))
+;;               :where [:= :ROUTE_NUMBER :20]}))
+
 (def find (comp query find-sql))
 
 (def find-by-attribute (comp query find-by-attribute-sql))
@@ -40,7 +49,10 @@
 ;; Database-specific wrapper functions
 ;;
 
-(def find-all-unique-column (comp set find-all-column))
+(def find-all-unique-column 
+  "Applies clojure set to find all distinct values within a column"
+  ;; Likely inefficient, but unsure how to implement SQL DISTINCT in JSQL.
+  (comp set find-all-column))
 
 (defn find-route-stops
   "Given a route-number, finds all stops that route stops at."
@@ -71,6 +83,25 @@
      route2 (find-stop-routes stop2)]
     (shared-stops route1 route2))))
 
-;(def all-routes
-;  "A collection of all routes."
-;  (
+(defn bus-arrival-departure-time-sql
+  "Given a route number and a stop id, returns a set of all departure times and arrival times."
+  [route-number location-id]
+  (find-sql :stopdata_03122014 {:select [:LEAVE_TIME :ARRIVE_TIME] :conditions {:ROUTE_NUMBER route-number, :LOCATION_ID location-id}}))
+
+(def bus-event (comp query bus-arrival-departure-time-sql))
+
+(defn departing-buses-window
+  "Given a route number, a stop id, and a start time and end time (in int seconds after midnight), returns all departure times and arrival times where departure times are between the start and end time."
+  [route-number location-id start-window end-window]
+  (filter #(< % end-window)
+  (filter #(> % start-window)
+          (map :leave_time
+               (bus-event route-number location-id)))))
+
+(defn arriving-buses-window
+  "Given a route number, a stop id, and a start time and end time (in int seconds after midnight), returns all arrival times and arrival times where departure times are between the start and end time."
+  [route-number location-id start-window end-window]
+  (filter #(< % end-window)
+  (filter #(> % start-window)
+          (map :arrive_time
+               (bus-event route-number location-id)))))
