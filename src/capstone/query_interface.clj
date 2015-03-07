@@ -1,3 +1,5 @@
+;; Copyright (c) 2015 Parker Harris Emerson
+
 (ns capstone.query-interface
   (:use java-jdbc.sql)
   (:require [clojure.java.jdbc :as jdbc])
@@ -54,6 +56,19 @@
   ;; Likely inefficient, but unsure how to implement SQL DISTINCT in JSQL.
   (comp set find-all-column))
 
+(defn find-average-passengers
+  "Given a route-number, two stop-ids, a direction and a train, finds the average number of passengers on the train."
+  [route-number stop1 stop2 train direction]
+  (let [datadump (find :stopdata_03122014 {:select [:ESTIMATED_LOAD :LEAVE_TIME :ROUTE_NUMBER :LOCATION_ID] :conditions {:TRAIN train :ROUTE_NUMBER route-number :DIRECTION direction}})
+        time1 (:leave_time (first (find :stopdata_03122014 {:select [:LEAVE_TIME] :conditions {:TRAIN train :ROUTE_NUMBER route-number :LOCATION_ID stop1 :DIRECTION direction}})))
+        time2 (:leave_time (first (find :stopdata_03122014 {:select [:LEAVE_TIME] :conditions {:TRAIN train :ROUTE_NUMBER route-number :LOCATION_ID stop2 :DIRECTION direction}})))
+        start-time (min time1 time2)
+        end-time (max time1 time2)
+        filtered-data (filter #(>= end-time (get % :leave_time)) (filter #(<= start-time (get % :leave_time)) datadump))
+        ]
+    (float (/ (reduce + (map :estimated_load filtered-data)) (count filtered-data)))
+    ))
+
 (defn find-route-stops
   "Given a route-number, finds all stops that route stops at."
   [route-number]
@@ -76,6 +91,7 @@
 
 (defn connecting-stops
   "Given two stops, returns all stops where they have connecting routes."
+  ;; Test with stop-ids 4537 and 3538
   [stop1 stop2]
   (reduce clojure.set/union
    (for
@@ -105,3 +121,17 @@
   (filter #(> % start-window)
           (map :arrive_time
                (bus-event route-number location-id)))))
+
+;(defn connecting-routes
+;  "Given a start-stop, and end-stop, and a connecting-stop, returns all routes connecting the start-stop to the end-stop."
+;  [start-stop end-stop connecting-stop]
+  
+
+(defn find-route
+  "Given two stops, return all possible routes. Note that this function brute-forces the pathfinding, only finding paths between stops with 0 or 1 transfers involved."
+  [stop1 stop2]
+  (let [routes (shared-routes stop1 stop2)]
+    (if (= routes #{})
+      (prn "No shared routes.\n")
+      (shared-routes stop1 stop2))))
+
