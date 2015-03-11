@@ -42,7 +42,7 @@
 
 (def end-time-text (text :text "14:30"))
 
-(def time-window-dropdown (combobox :model ["Arrival" "Destination"]))
+(def time-window-dropdown (combobox :model ["Destination" "Arrival"]))
 
 (defn arrival-text 
   "Returns a newline-separated string of all arrival times at a stop."
