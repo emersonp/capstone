@@ -34,9 +34,9 @@
                         :editable? false
                         :multi-line? true))
 
-(def departure-id-text (text :text "6415"))
+(def departure-id-text (text :text "6411"))
 
-(def destination-id-text (text :text "6411"))
+(def destination-id-text (text :text "6414"))
 
 (def start-time-text (text :text "12:30"))
 
@@ -66,15 +66,19 @@
                                                         (convert-to-stop_time (value start-time-text))
                                                         (convert-to-stop_time (value end-time-text)))))))
 
+;;(defn route-plan-text
+  ;;[]
+
 (def calculate-button
   (button :text "Calculate"
           :mnemonic \C
           :listen [:action (fn [e]
-                             (config! text-display :text (let [user-window-choice (value time-window-dropdown)]
-                                                           (cond
-                                                             (= "Arrival" user-window-choice) (arrival-text)
-                                                             (= "Destination" user-window-choice) (departure-text)))))]))
-
+                             (config! text-display :text (let [route-map (qi/plan-trip-based-passenger (num-value departure-id-text)
+                                                 (num-value destination-id-text)
+                                                 (convert-to-stop_time (value start-time-text))
+                                                 (convert-to-stop_time (value end-time-text)))]
+    (str "Go to stop ID " (:start-stop route-map) ".\nAt " (convert-from-seconds (:leave-time route-map)) ",\nget on the " (:route-number route-map) " bus.\nGet off at stop ID " (:end-stop route-map) "."))))]))
+                                      
 (def my-left-column (grid-panel :border "Trip Parameters"
                                 :columns 1
                                 :items ["Prioritize"

@@ -4,6 +4,7 @@
   (:use java-jdbc.sql)
   (:require [clojure.java.jdbc :as jdbc])
   (:refer-clojure :exclude [find])
+  (:require [clojure.set :refer [union]])
   (:require [honeysql.core :as sql]
             [honeysql.helpers :as sqlhelp]))
 
@@ -32,13 +33,6 @@
   [table column]
   (select column table))
 
-;;(defn find-all-column-sql
-;;  "Finds all elements of a column."
-;;  [column & args]
-;;  (sql/format {:select [column args]
-;;               :from [:stopdata_03122014]}))
-;;               :where [:= :ROUTE_NUMBER :20]}))
-
 (def find (comp query find-sql))
 
 (def find-by-attribute (comp query find-by-attribute-sql))
@@ -57,16 +51,20 @@
   (comp set find-all-column))
 
 (defn find-average-passengers
-  "Given a route-number, two stop-ids, a direction and a train, finds the average number of passengers on the train."
-  [route-number stop1 stop2 train direction]
-  (let [datadump (find :stopdata_03122014 {:select [:ESTIMATED_LOAD :LEAVE_TIME :ROUTE_NUMBER :LOCATION_ID] :conditions {:TRAIN train :ROUTE_NUMBER route-number :DIRECTION direction}})
-        time1 (:leave_time (first (find :stopdata_03122014 {:select [:LEAVE_TIME] :conditions {:TRAIN train :ROUTE_NUMBER route-number :LOCATION_ID stop1 :DIRECTION direction}})))
-        time2 (:leave_time (first (find :stopdata_03122014 {:select [:LEAVE_TIME] :conditions {:TRAIN train :ROUTE_NUMBER route-number :LOCATION_ID stop2 :DIRECTION direction}})))
-        start-time (min time1 time2)
-        end-time (max time1 time2)
+  "Given a route-number, two stop-ids, and a trip-number, finds the average number of passengers on the train."
+  [route-number stop1 stop2 trip-number train]
+  (let [datadump (find :stopdata_03122014 {:select [:ESTIMATED_LOAD :LEAVE_TIME :ROUTE_NUMBER :LOCATION_ID :TRIP_NUMBER :DIRECTION] :conditions {:TRIP_NUMBER trip-number, :ROUTE_NUMBER route-number, :TRAIN train}})
+        time1 (:leave_time (first (filter #(= stop1 (:location_id %)) datadump)))
+        time2 (:leave_time (first (filter #(= stop2 (:location_id %)) datadump)))
+        start-time (if (and time1 time2)
+                     (min time1 time2)
+                     (or time1 time2))
+        end-time (if (and time1 time2)
+                     (min time1 time2)
+                     (or time1 time2))
         filtered-data (filter #(>= end-time (get % :leave_time)) (filter #(<= start-time (get % :leave_time)) datadump))
         ]
-    (float (/ (reduce + (map :estimated_load filtered-data)) (count filtered-data)))
+      (float (/ (reduce + (map :estimated_load filtered-data)) (count filtered-data)))
     ))
 
 (defn find-route-stops
@@ -107,7 +105,7 @@
 (def bus-event (comp query bus-arrival-departure-time-sql))
 
 (defn departing-buses-window
-  "Given a route number, a stop id, and a start time and end time (in int seconds after midnight), returns all departure times and arrival times where departure times are between the start and end time."
+  "Given a route number, a stop id, and a start time and end time (in int seconds after midnight), returns all departure times where departure times are between the start and end time."
   [route-number location-id start-window end-window]
   (filter #(< % end-window)
   (filter #(> % start-window)
@@ -115,17 +113,82 @@
                (bus-event route-number location-id)))))
 
 (defn arriving-buses-window
-  "Given a route number, a stop id, and a start time and end time (in int seconds after midnight), returns all arrival times and arrival times where departure times are between the start and end time."
+  "Given a route number, a stop id, and a start time and end time (in int seconds after midnight), returns all arrival times where arrival times are between the start and end time."
   [route-number location-id start-window end-window]
   (filter #(< % end-window)
   (filter #(> % start-window)
           (map :arrive_time
                (bus-event route-number location-id)))))
 
-;(defn connecting-routes
-;  "Given a start-stop, and end-stop, and a connecting-stop, returns all routes connecting the start-stop to the end-stop."
-;  [start-stop end-stop connecting-stop]
-  
+(defn connecting-routes
+  "Given a start-stop, an end-stop, and a connecting-stop, returns all routes connecting the start-stop to the end-stop."
+  ;; Test with stop-ids 4537 7476 3538
+  [start-stop connecting-stop end-stop]
+  (list (shared-routes start-stop connecting-stop) (shared-routes connecting-stop end-stop)))
+
+(defn find-all-trips
+  "Given a start-stop and end-stop, as well as a start-time and end-time, if there is a connecting route, will return all trips a passenger can take."
+  [start-stop end-stop start-time end-time]
+  (if (shared-routes start-stop end-stop)
+    (for [route (shared-routes start-stop end-stop)]
+      (assoc {} :route route :departure-times (departing-buses-window route start-stop start-time end-time) :then nil))))
+
+(defn print-all-trips
+  "Prints find-all-trips"
+  [start-stop end-stop start-time end-time]
+  (for [trip (find-all-trips start-stop end-stop start-time end-time)]
+    (for [leave-time (:departure-times trip)]
+      (do
+        (str "Start at stop ID " start-stop ". Get on bus number " (:route trip) " at " leave-time ". Get off at stop ID " end-stop)))))
+
+(defn get-train-number
+  "Given a stop-id, leave-time, and route, return a train."
+  [stop-id leave-time route]
+  (:train (first (find :stopdata_03122014 {:select [:TRAIN] :conditions {:ROUTE_NUMBER route :LOCATION_ID stop-id :LEAVE_TIME leave-time}}))))
+
+(defn get-direction
+  "Given a stop-id, leave-time, and route, return a direction."
+  [stop-id leave-time route]
+  (:direction (first (find :stopdata_03122014 {:select [:DIRECTION] :conditions {:ROUTE_NUMBER route :LOCATION_ID stop-id :LEAVE_TIME leave-time}}))))
+
+(defn get-trip-number
+  "Given a stop-id, leave-time, and route, return a trip number."
+  [stop-id leave-time route]
+  (:trip_number (first (find :stopdata_03122014 {:select [:TRIP_NUMBER] :conditions {:ROUTE_NUMBER route :LOCATION_ID stop-id :LEAVE_TIME leave-time}}))))
+
+(defn fakefunc
+  [arg1 arg2 arg3 arg4 arg5]
+  [arg1 arg2 arg3 arg4 arg5])
+
+(defn plan-trip-based-passenger
+  "Given a start-stop and end-stop, and a start-time and end-time, finds best route based on emptiness of bus."
+  [start-stop end-stop start-time end-time]
+  (let [minimum-pass (apply min (map #(apply min %)
+                                     (for [route (find-all-trips start-stop end-stop start-time end-time)]
+                                       (for [departure-times (:departure-times route)]
+                                         (find-average-passengers (:route route)
+                                                                  start-stop
+                                                                  end-stop
+                                                                  (get-trip-number start-stop departure-times (:route route))
+                                                                  (get-train-number start-stop departure-times (:route route)) )))
+    ))]
+(first (filter identity (distinct (apply union (map distinct
+     (for [route (find-all-trips start-stop end-stop start-time end-time)]
+       (for [departure-times (:departure-times route)]
+         (if (= minimum-pass (find-average-passengers (:route route)
+                                  start-stop
+                                  end-stop
+                                  (get-trip-number start-stop departure-times (:route route))
+                                  (get-train-number start-stop departure-times (:route route)) ))
+           {:route-number (:route route), :start-stop start-stop, :end-stop end-stop, :leave-time departure-times}))))))))))
+
+
+(defn find-trip-stop-time
+  "Given a route, a start-stop, an end-stop, and a departure-time (from start-stop), returns the arrival time of the bus at the end-stop."
+  [route start-stop end-stop departure-time]
+  (let [trip (find :stopdata_03122014 {:select [:TRIP_NUMBER] :conditions {:ROUTE_NUMBER route, :LOCATION_ID start-stop :LEAVE_TIME departure-time}})]
+    (:arrive_time (first (find :stopdata_03122014 {:select [:ARRIVE_TIME] :conditions {:ROUTE_NUMBER route, :LOCATION_ID end-stop, :TRIP_NUMBER (:trip_number (first trip))}})))))
+
 
 (defn find-route
   "Given two stops, return all possible routes. Note that this function brute-forces the pathfinding, only finding paths between stops with 0 or 1 transfers involved."
