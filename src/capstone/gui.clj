@@ -30,7 +30,7 @@
   (make-print-list (qi/find 'stopdata_03122014 {:select [:badge :route_number]
                                           :conditions {:stop_time num}})))
 
-(def text-display (text :text "Frank"
+(def text-display (text :text "Instructions will appear here."
                         :editable? false
                         :multi-line? true))
 
@@ -77,7 +77,7 @@
                                                  (num-value destination-id-text)
                                                  (convert-to-stop_time (value start-time-text))
                                                  (convert-to-stop_time (value end-time-text)))]
-    (str "Go to stop ID " (:start-stop route-map) ".\nAt " (convert-from-seconds (:leave-time route-map)) ",\nget on the " (:route-number route-map) " bus.\nGet off at stop ID " (:end-stop route-map) "."))))]))
+    (str "Go to stop ID " (:start-stop route-map) ".\nAt " (convert-from-seconds (:leave-time route-map)) ", get on the " (:route-number route-map) " bus.\nGet off at stop ID " (:end-stop route-map) "."))))]))
                                       
 (def my-left-column (grid-panel :border "Trip Parameters"
                                 :columns 1
